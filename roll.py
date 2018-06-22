@@ -127,7 +127,7 @@ def parse(input,author):
 			# run the macro
 			retstr = parse(Users[author][parts[2]],author)
 		elif parts[1].upper() in ["HELP"]:
-			retstr = 'My Key word is "!", "!r", or "!roll"\nMake simple roll with: "! 2d6+4 Sword Damage"\nSave a macro: "! define init 1d20+5"\nUse a macro: "! use init"\nCan roll multiple kinds of dice: "! 3d6+2d4-4"'
+			retstr = 'My Key word is "!", "!r", or "!roll"\nMake simple roll with: "! 2d6+4 Sword Damage"\nSave a macro: "! define init 1d20+5 Intitative"\nUse a macro: "! use init"\nCan roll multiple kinds of dice: "! 3d6+2d4-4"'
 		else:
 			# Get output for roll string
 			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=rollem(input))
