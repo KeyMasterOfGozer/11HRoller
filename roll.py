@@ -102,7 +102,7 @@ def parse(input,author):
 	retstr = None
 
 	#drop out if this is not a Roll command
-	if parts[0].upper() not in ['!','!R','!ROLL']:
+	if len(parts) == 0 or parts[0].upper() not in ['!','!R','!ROLL']:
 		return None
 
 	try:
