@@ -126,8 +126,25 @@ def parse(input,author):
 				Users = json.load(f)
 			# run the macro
 			retstr = parse(Users[author][parts[2]],author)
+		elif parts[1].upper() == "LIST":
+			# get User Macro DB from file
+			with open(UserFile,"r") as f:
+				Users = json.load(f)
+			# initialize this user if he's not in the DB
+			if author not in Users:
+				Users[author] = {}
+			# build list of stored commands
+			retstr = "\n{Author}'s Macros:".format(Author=author)
+			for key,value in Users[author].items():
+				retstr += "\n{MacroName}:\t{MacroText}".format(MacroName=key,MacroText=value)
 		elif parts[1].upper() in ["HELP"]:
-			retstr = 'My Key word is "!", "!r", or "!roll"\nMake simple roll with: "! 2d6+4 Sword Damage"\nSave a macro: "! define init 1d20+5 Intitative"\nUse a macro: "! use init"\nCan roll multiple kinds of dice: "! 3d6+2d4-4"'
+			retstr = '''
+My Key word is "!", "!r", or "!roll"
+Make simple roll with: "! 2d6+4 Sword Damage"
+Save a macro: "! define init 1d20+5 Intitative"
+Use a macro: "! use init"
+List your existing macros: "! list"
+Can roll multiple kinds of dice: "! 3d6+2d4-4" '''
 		else:
 			# Get output for roll string
 			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=rollem(input))
