@@ -102,7 +102,7 @@ def parse(input,author):
 	retstr = None
 
 	#drop out if this is not a Roll command
-	if len(parts) == 0 or parts[0].upper() not in ['!','!R','!ROLL']:
+	if len(parts) == 0 or parts[0].upper() not in ['!','!R','!ROLL','/','/R','/ROLL','\\','\\R','\\ROLL']:
 		return None
 
 	try:
@@ -137,13 +137,30 @@ def parse(input,author):
 			retstr = "\n{Author}'s Macros:".format(Author=author)
 			for key,value in Users[author].items():
 				retstr += "\n{MacroName}:\t{MacroText}".format(MacroName=key,MacroText=value)
+		elif parts[1].upper() == "LOAD":
+			# get User Macro DB from file
+			with open(UserFile,"r") as f:
+				Users = json.load(f)
+			# initialize this user if he's not in the DB
+			if author not in Users:
+				Users[author] = {}
+			# build list of stored commands
+			if len(parts) > 2 and parts[2].lstrip()[0] == "{":
+				Users[author].update(json.loads(" ".join(parts[2:])))
+				retstr = "\n{Author} added or updated Macros".format(Author=author)
+				# save to DB file for next time
+				with open(UserFile,"w") as f:
+					f.write(json.dumps(Users,indent=2))
+			else:
+				retstr = "\n{Author}'s Macro string was not recognized JSON:".format(Author=author)
 		elif parts[1].upper() in ["HELP"]:
 			retstr = '''
-My Key word is "!", "!r", or "!roll"
+My Key word is "!", "!r", "!roll" or "\\", "\\r", "\\roll"
 Make simple roll with: "! 2d6+4 Sword Damage"
 Save a macro: "! define init 1d20+5 Intitative"
 Use a macro: "! use init"
 List your existing macros: "! list"
+Load up set of macros: "! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}""
 Can roll multiple kinds of dice: "! 3d6+2d4-4" '''
 		else:
 			# Get output for roll string
