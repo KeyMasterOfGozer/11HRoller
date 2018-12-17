@@ -23,7 +23,7 @@ def rollToken(Token):
 	# the operator to use (+,-)
 	oper = Token[0]
 
-	# if it has a "d", that measn there are dice, otherwise it's just a number to add
+	# if it has a "d", that means there are dice, otherwise it's just a number to add
 	if "d" in Token:
 		# die to roll
 		parts=Token[1:].split("d")
@@ -56,6 +56,14 @@ def rollToken(Token):
 			total-=roll
 
 	return total, info.strip()
+
+
+def rollem(input,author):
+	lines = input.split(";")
+	output = ""
+	for line in lines:
+		output += parse(line.strip()) + "\n"
+	return output.strip()
 
 
 def rollem(input):
@@ -95,6 +103,14 @@ def rollem(input):
 
 
 def parse(input,author):
+	lines = input.split(";")
+	if len(lines) > 1:
+		output = author + " rolls:\n"
+		for line in lines:
+			output += parse(line.strip(),author) + "\n"
+		return output.strip()
+
+
 	# parse the input string from the message so that we can see what we need to do
 	parts = input.split()
 	Message(parts,1)
@@ -120,6 +136,8 @@ def parse(input,author):
 				f.write(json.dumps(Users,indent=2))
 			#give user message so he knows it's saved
 			retstr = "{Author} saved '{macro}' as '{definition}'".format(Author=author,macro=parts[2],definition=Users[author][parts[2]])
+		elif parts[1].upper() == "ECHO":
+			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=" ".join(parts[2:]))
 		elif parts[1].upper() == "USE":
 			# get User Macro DB from file
 			with open(UserFile,"r") as f:
@@ -159,9 +177,11 @@ My Key word is "!", "!r", "!roll" or "\\", "\\r", "\\roll"
 Make simple roll with: "! 2d6+4 Sword Damage"
 Save a macro: "! define init 1d20+5 Intitative"
 Use a macro: "! use init"
+Echo some text: "! echo Suck it monsters!!!!"
 List your existing macros: "! list"
 Load up set of macros: "! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}""
-Can roll multiple kinds of dice: "! 3d6+2d4-4" '''
+Can roll multiple kinds of dice: "! 3d6+2d4-4"
+Use a semi-colon to execute multiple commands! '''
 		else:
 			# Get output for roll string
 			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=rollem(input))
