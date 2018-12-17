@@ -34,7 +34,7 @@ def rollToken(Token):
 		else:
 			num=int(parts[0])
 	else:
-		# jsut a simple number to add/sutract
+		# just a simple number to add/sutract
 		high=int(Token[1:])
 		low=high
 		num=1
@@ -56,14 +56,6 @@ def rollToken(Token):
 			total-=roll
 
 	return total, info.strip()
-
-
-def rollem(input,author):
-	lines = input.split(";")
-	output = ""
-	for line in lines:
-		output += parse(line.strip()) + "\n"
-	return output.strip()
 
 
 def rollem(input):
@@ -103,6 +95,7 @@ def rollem(input):
 
 
 def parse(input,author):
+	# If this is a Multi-Command, run each command separately and stack them together, and return that
 	lines = input.split(";")
 	if len(lines) > 1:
 		output = author + " rolls:\n"
