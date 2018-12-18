@@ -95,15 +95,6 @@ def rollem(input):
 
 
 def parse(input,author):
-	# If this is a Multi-Command, run each command separately and stack them together, and return that
-	lines = input.split(";")
-	if len(lines) > 1:
-		output = author + " rolls:\n"
-		for line in lines:
-			output += parse(line.strip(),author) + "\n"
-		return output.strip()
-
-
 	# parse the input string from the message so that we can see what we need to do
 	parts = input.split()
 	Message(parts,1)
@@ -113,6 +104,14 @@ def parse(input,author):
 	#drop out if this is not a Roll command
 	if len(parts) == 0 or parts[0].upper() not in ['!','!R','!ROLL','/','/R','/ROLL','\\','\\R','\\ROLL']:
 		return None
+
+	# If this is a Multi-Command, run each command separately and stack them together, and return that
+	lines = input.split(";")
+	if len(lines) > 1 and parts[1].upper() not in ["DEFINE","LOAD"]:
+		output = author + " rolls:\n"
+		for line in lines:
+			output += parse(line.strip(),author) + "\n"
+		return output.strip()
 
 	try:
 		if parts[1].upper() == "DEFINE":
