@@ -1,6 +1,7 @@
 import random
 import json
 import discord
+import re
 
 Verbosity = 0
 UserFile = 'users.json'
@@ -16,6 +17,13 @@ def Message(msg,lvl=0):
 	# Send a message based on Debug level
 	if lvl <= Verbosity:
 		print(msg)
+
+def IsDieRoll(input):
+	# Tell us if this string is like a series of die rolls
+	if re.fullmatch("(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",input.strip()):
+		return True
+	else:
+		return False
 
 def rollToken(Token):
 	# Roll the numbers for a single die type
@@ -168,15 +176,26 @@ def parse(input,author):
 My Key word is "!", "!r", "!roll" or "\\", "\\r", "\\roll"
 Make simple roll with: "! 2d6+4 Sword Damage"
 Save a macro: "! define init 1d20+5 Intitative"
-Use a macro: "! use init"
+Use a macro: "! use init" or just "! init"
 Echo some text: "! echo Suck it monsters!!!!"
 List your existing macros: "! list"
 Load up set of macros: "! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}""
 Can roll multiple kinds of dice: "! 3d6+2d4-4"
 Use a semi-colon to execute multiple commands! '''
-		else:
-			# Get output for roll string
+		elif IsDieRoll(parts[1]):
+			# Looks like a manual die Rolle, Get output for roll string
 			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=rollem(input))
+		else:
+			# This doesn't match anything we know, so let's see if it is a Macro
+			# get User Macro DB from file
+			with open(UserFile,"r") as f:
+				Users = json.load(f)
+			if parts[1] in Users[author].keys:
+				# run the macro
+				retstr = parse(Users[author][parts[1]],author)
+			else:
+				# must be a nonsense string
+				retstr = "String Doesn't parse correctly."
 	except Exception as e:
 		retstr = None
 
