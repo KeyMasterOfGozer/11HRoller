@@ -20,7 +20,7 @@ def Message(msg,lvl=0):
 
 def IsDieRoll(input):
 	# Tell us if this string is like a series of die rolls
-	if re.fullmatch("(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",input.strip()):
+	if re.fullmatch("[+-]*(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",input.strip()):
 		return True
 	else:
 		return False
