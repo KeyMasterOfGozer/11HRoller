@@ -190,7 +190,8 @@ Use a semi-colon to execute multiple commands! '''
 			# get User Macro DB from file
 			with open(UserFile,"r") as f:
 				Users = json.load(f)
-			if parts[1] in Users[author].keys:
+			Message(Users[author].keys(),2)
+			if parts[1] in Users[author].keys():
 				# run the macro
 				retstr = parse(Users[author][parts[1]],author)
 			else:
