@@ -196,7 +196,7 @@ Use a semi-colon to execute multiple commands! '''
 				retstr = parse(Users[author][parts[1]],author)
 			else:
 				# must be a nonsense string
-				retstr = "String Doesn't parse correctly."
+				retstr = '{Author}, your command was not understood.'.format(Author=author)
 	except Exception as e:
 		retstr = None
 
