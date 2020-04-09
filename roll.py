@@ -218,9 +218,8 @@ async def on_message(message):
 		return
 	# get the output for the given message
 	output = parse(message.content,message.author.display_name)
-	#Send you reply if there is something.
 	if output is not None:
-		await client.send_message(message.channel, output)
+		await message.channel.send(output)
 
 @client.event
 async def on_ready():
