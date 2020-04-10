@@ -93,7 +93,7 @@ def rollem(input):
 		if len(description) > 0:
 			retstr += description + " => "
 		# Total up the roll and report
-		retstr += "{rollInfo} = {Total}".format(rollInfo=info.strip(),Total=total)
+		retstr += "{rollInfo} = **{Total}**".format(rollInfo=info.strip(),Total=total)
 		Message(retstr,1)
 
 	except Exception as e:
@@ -118,7 +118,7 @@ def parse(input,author):
 	if len(lines) > 1 and parts[1].upper() not in ["DEFINE","LOAD"]:
 		output = author + " rolls:\n"
 		for line in lines:
-			output += parse(line.strip(),author) + "\n"
+			output += parse(line.strip(),"    ") + "\n"
 		return output.strip()
 
 	try:
