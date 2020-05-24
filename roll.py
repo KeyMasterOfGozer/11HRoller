@@ -181,15 +181,25 @@ def parse(input,author,MultiLine=0):
 				retstr = "\n{Author}'s Macro string was not recognized JSON:".format(Author=author)
 		elif parts[1].upper() in ["HELP"]:
 			retstr = '''
-My Key word is "!", "!r", "!roll" or "\\", "\\r", "\\roll"
-Make simple roll with: "! 2d6+4 Sword Damage"
-Save a macro: "! define init 1d20+5 Intitative"
-Use a macro: "! use init" or just "! init"
-Echo some text: "! echo Suck it monsters!!!!"
-List your existing macros: "! list"
-Load up set of macros: "! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}""
-Can roll multiple kinds of dice: "! 3d6+2d4-4"
-Use a semi-colon to execute multiple commands! '''
+My Key words are "!", "!r", "!roll" or "\\", "\\r", "\\roll"
+
+Make simple roll with:```/roll 2d6+4```
+Add description text:```/roll 2d6+4 Sword Damage```
+Print some text with no roll:```! echo Suck it monsters!!!!```
+Can roll multiple kinds of dice:```! 3d6+2d4-4```
+Use a semi-colon to execute multiple commands! 
+
+***Macros***
+**Save**:```! define init 1d20+5 Intitative```
+**Use**:```! use init```or just ```! init```
+**List** your existing macros:```! list```
+**Load** up set of macros:```! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}```
+
+Macros can call macros.  Example:
+A Gun Attack:```/roll define gun 1d20+12 Gun to hit```
+Damage for the gun attack:```/roll define gun-dam 1d8+6 Piercing Damage```
+Combo macro that uses the other 2 multiple times:```/roll define atk echo **Normal Gun Attack**; ! echo 1st Shot:; ! use gun; ! use gun-dam; ! echo 2nd Shot:; ! use gun; ! use gun-dam```
+'''
 		elif IsDieRoll(parts[1]):
 			# Looks like a manual die Rolle, Get output for roll string
 			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=rollem(input))
