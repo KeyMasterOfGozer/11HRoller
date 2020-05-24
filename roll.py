@@ -102,26 +102,34 @@ def rollem(input):
 	return retstr
 
 
-def parse(input,author):
+def parse(input,author,MultiLine=0):
 	# parse the input string from the message so that we can see what we need to do
-	parts = input.split()
+	parts = input.strip().split()
 	Message(parts,1)
 
 	retstr = None
+	if MultiLine == 1:
+		AuthorName = "   "
+	else:
+		AuthorName = author
 
 	#drop out if this is not a Roll command
 	if len(parts) == 0 or parts[0].upper() not in ['!','!R','!ROLL','/','/R','/ROLL','\\','\\R','\\ROLL']:
+		Message("Not a command",1)
 		return None
 
 	# If this is a Multi-Command, run each command separately and stack them together, and return that
 	lines = input.split(";")
+	Message(lines,1)
 	if len(lines) > 1 and parts[1].upper() not in ["DEFINE","LOAD"]:
+		Message("MultiLine",1)
 		output = author + " rolls:\n"
 		for line in lines:
-			output += parse(line.strip(),"    ") + "\n"
+			output += parse(line.strip(),author,1) + "\n"
 		return output.strip()
 
 	try:
+		Message("Command: "+parts[1].upper(),1)
 		if parts[1].upper() == "DEFINE":
 			# read in Database of User Macros
 			with open(UserFile,"r") as f:
@@ -137,13 +145,13 @@ def parse(input,author):
 			#give user message so he knows it's saved
 			retstr = "{Author} saved '{macro}' as '{definition}'".format(Author=author,macro=parts[2],definition=Users[author][parts[2]])
 		elif parts[1].upper() == "ECHO":
-			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=" ".join(parts[2:]))
+			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=" ".join(parts[2:]))
 		elif parts[1].upper() == "USE":
 			# get User Macro DB from file
 			with open(UserFile,"r") as f:
 				Users = json.load(f)
 			# run the macro
-			retstr = parse(Users[author][parts[2]],author)
+			retstr = parse(Users[author][parts[2]],author,MultiLine)
 		elif parts[1].upper() == "LIST":
 			# get User Macro DB from file
 			with open(UserFile,"r") as f:
@@ -184,20 +192,23 @@ Can roll multiple kinds of dice: "! 3d6+2d4-4"
 Use a semi-colon to execute multiple commands! '''
 		elif IsDieRoll(parts[1]):
 			# Looks like a manual die Rolle, Get output for roll string
-			retstr = "{Author}: {rollreturn}".format(Author=author,rollreturn=rollem(input))
+			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=rollem(input))
 		else:
 			# This doesn't match anything we know, so let's see if it is a Macro
 			# get User Macro DB from file
+			Message("Load file",1)
 			with open(UserFile,"r") as f:
 				Users = json.load(f)
-			Message(Users[author].keys(),2)
+			Message("File Loaded",1)
+			#Message(Users[author].keys(),2)
 			if parts[1] in Users[author].keys():
 				# run the macro
-				retstr = parse(Users[author][parts[1]],author)
+				retstr = parse(Users[author][parts[1]],author,MultiLine)
 			else:
 				# must be a nonsense string
 				retstr = '{Author}, your command was not understood.'.format(Author=author)
 	except Exception as e:
+		print(e)
 		retstr = None
 
 	return retstr
