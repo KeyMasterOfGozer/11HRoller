@@ -123,10 +123,12 @@ def parse(input,author,MultiLine=0):
 	Message(lines,1)
 	if len(lines) > 1 and parts[1].upper() not in ["DEFINE","LOAD"]:
 		Message("MultiLine",1)
-		output = author + " rolls:\n"
+		output = ""
+		if MultiLine == 0:
+			output += author + " rolls:\n"
 		for line in lines:
 			output += parse(line.strip(),author,1) + "\n"
-		return output.strip()
+		return output.strip('\n')
 
 	try:
 		Message("Command: "+parts[1].upper(),1)
@@ -182,19 +184,16 @@ def parse(input,author,MultiLine=0):
 		elif parts[1].upper() in ["HELP"]:
 			retstr = '''
 My Key words are "!", "!r", "!roll" or "\\", "\\r", "\\roll"
-
 Make simple roll with:```/roll 2d6+4```
 Add description text:```/roll 2d6+4 Sword Damage```
 Print some text with no roll:```! echo Suck it monsters!!!!```
 Can roll multiple kinds of dice:```! 3d6+2d4-4```
 Use a semi-colon to execute multiple commands! 
-
 ***Macros***
 **Save**:```! define init 1d20+5 Intitative```
 **Use**:```! use init```or just ```! init```
 **List** your existing macros:```! list```
 **Load** up set of macros:```! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}```
-
 Macros can call macros.  Example:
 A Gun Attack:```/roll define gun 1d20+12 Gun to hit```
 Damage for the gun attack:```/roll define gun-dam 1d8+6 Piercing Damage```
