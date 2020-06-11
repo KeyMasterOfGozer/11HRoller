@@ -18,15 +18,25 @@ def Message(msg,lvl=0):
 	if lvl <= Verbosity:
 		print(msg)
 
-def IsDieRoll(input):
+def IsDieRoll(input,varlist):
+	# First, let's replace any variables in the string
+	RollStr=input.strip()
+	for key in varlist.keys():
+		RollStr = RollStr.replace("{"+key+"}",varlist[key])
 	# Tell us if this string is like a series of die rolls
-	if re.fullmatch("[+-]*(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",input.strip()):
+	if re.fullmatch("[+-]*(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",RollStr):
 		return True
 	else:
 		return False
 
-def rollToken(Token):
+def rollToken(Token,varlist):
 	# Roll the numbers for a single die type
+	if Token[0]=='{':
+		TokenStr=Token[1:][0:-1]
+		Token=varlist[TokenStr]
+		TokenStr="{Value}({VarName})".format(Value=Token,VarName=TokenStr)
+	else:
+		TokenStr=Token
 
 	# the operator to use (+,-)
 	oper = Token[0]
@@ -47,7 +57,7 @@ def rollToken(Token):
 		low=high
 		num=1
 
-	info = Token + " "
+	info = TokenStr + " "
 	total = 0
 	# roll for as many of this type of die that is called for
 	for x in range(num):
@@ -66,8 +76,9 @@ def rollToken(Token):
 	return total, info.strip()
 
 
-def rollem(input):
+def rollem(input,varlist):
 	# Stack up all of the dice that need to be rolled and get a total
+	Message("RollEm: '{text}' : {VarList}".format(text=input,VarList=json.dumps(varlist)),1)
 	try:
 		parts = input.split()
 		# Description is all words past the 2nd one, we join them back up with spaces
@@ -75,8 +86,10 @@ def rollem(input):
 		Message(description,2)
 
 		# I decided to add pipes in front of pluses and minuses to be able to split it and keep the sign with it
-		rollstr = "+"+parts[1].replace("+","|+").replace("-","|-")
+		rollstr = "+"+parts[1].replace("+","|+").replace("-","|-").replace("{","|{").replace("}","}|")
 		rolls=rollstr.split("|")
+		if rolls[-1]=='':
+			rolls=rolls[0:-1]
 		Message(rolls,2)
 
 		total = 0
@@ -84,7 +97,7 @@ def rollem(input):
 
 		# Run through the whole list and total everything up.
 		for roll in rolls:
-			subtotal, substr = rollToken(roll)
+			subtotal, substr = rollToken(roll,varlist)
 			total += subtotal
 			info +=  " " + substr
 
@@ -101,6 +114,18 @@ def rollem(input):
 
 	return retstr
 
+def refreshDataFile(author):
+	# read in Database of User Macros
+	with open(UserFile,"r") as f:
+		Users = json.load(f)
+	# initialize this user if he's not in the DB
+	if author not in Users:
+		Users[author] = {"macros":{},"vars":{}}
+	if "macros" not in Users[author]:
+		Users[author]["macros"] = {}
+	if "vars" not in Users[author]:
+		Users[author]["vars"] = {}
+	return Users
 
 def parse(input,author,MultiLine=0):
 	# parse the input string from the message so that we can see what we need to do
@@ -121,6 +146,7 @@ def parse(input,author,MultiLine=0):
 	# If this is a Multi-Command, run each command separately and stack them together, and return that
 	lines = input.split(";")
 	Message(lines,1)
+	Users=refreshDataFile(author)
 	if len(lines) > 1 and parts[1].upper() not in ["DEFINE","LOAD"]:
 		Message("MultiLine",1)
 		output = ""
@@ -133,48 +159,40 @@ def parse(input,author,MultiLine=0):
 	try:
 		Message("Command: "+parts[1].upper(),1)
 		if parts[1].upper() == "DEFINE":
-			# read in Database of User Macros
-			with open(UserFile,"r") as f:
-				Users = json.load(f)
-			# initialize this user if he's not in the DB
-			if author not in Users:
-				Users[author] = {}
+			Users=refreshDataFile(author)
 			#save this macro for the user
-			Users[author][parts[2]] = "! " + " ".join(parts[3:])
+			Users[author]['macros'][parts[2]] = "! " + " ".join(parts[3:])
 			# save to DB file for next time
 			with open(UserFile,"w") as f:
 				f.write(json.dumps(Users,indent=2))
 			#give user message so he knows it's saved
 			retstr = "{Author} saved '{macro}' as '{definition}'".format(Author=author,macro=parts[2],definition=Users[author][parts[2]])
+		if parts[1].upper() == "SET":
+			Users=refreshDataFile(author)
+			#save this variable for the user
+			Users[author]['vars'][parts[2]] = parts[3]
+			# save to DB file for next time
+			with open(UserFile,"w") as f:
+				f.write(json.dumps(Users,indent=2))
+			#give user message so he knows it's saved
+			retstr = "{Author} saved '{variable}' as '{definition}'".format(Author=author,variable=parts[2],definition=parts[3])
 		elif parts[1].upper() == "ECHO":
 			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=" ".join(parts[2:]))
 		elif parts[1].upper() == "USE":
-			# get User Macro DB from file
-			with open(UserFile,"r") as f:
-				Users = json.load(f)
+			Users=refreshDataFile(author)
 			# run the macro
-			retstr = parse(Users[author][parts[2]],author,MultiLine)
+			retstr = parse(Users[author]['macros'][parts[2]],author,MultiLine)
 		elif parts[1].upper() == "LIST":
-			# get User Macro DB from file
-			with open(UserFile,"r") as f:
-				Users = json.load(f)
-			# initialize this user if he's not in the DB
-			if author not in Users:
-				Users[author] = {}
+			Users=refreshDataFile(author)
 			# build list of stored commands
 			retstr = "\n{Author}'s Macros:".format(Author=author)
-			for key,value in Users[author].items():
+			for key,value in Users[author]['macros'].items():
 				retstr += "\n{MacroName}:\t{MacroText}".format(MacroName=key,MacroText=value)
 		elif parts[1].upper() == "LOAD":
-			# get User Macro DB from file
-			with open(UserFile,"r") as f:
-				Users = json.load(f)
-			# initialize this user if he's not in the DB
-			if author not in Users:
-				Users[author] = {}
+			Users=refreshDataFile(author)
 			# build list of stored commands
 			if len(parts) > 2 and parts[2].lstrip()[0] == "{":
-				Users[author].update(json.loads(" ".join(parts[2:])))
+				Users[author]['macros'].update(json.loads(" ".join(parts[2:])))
 				retstr = "\n{Author} added or updated Macros".format(Author=author)
 				# save to DB file for next time
 				with open(UserFile,"w") as f:
@@ -188,7 +206,7 @@ Make simple roll with:```/roll 2d6+4```
 Add description text:```/roll 2d6+4 Sword Damage```
 Print some text with no roll:```! echo Suck it monsters!!!!```
 Can roll multiple kinds of dice:```! 3d6+2d4-4```
-Use a semi-colon to execute multiple commands! 
+Use a semi-colon to execute multiple commands!
 ***Macros***
 **Save**:```! define init 1d20+5 Intitative```
 **Use**:```! use init```or just ```! init```
@@ -199,20 +217,19 @@ A Gun Attack:```/roll define gun 1d20+12 Gun to hit```
 Damage for the gun attack:```/roll define gun-dam 1d8+6 Piercing Damage```
 Combo macro that uses the other 2 multiple times:```/roll define atk echo **Normal Gun Attack**; ! echo 1st Shot:; ! use gun; ! use gun-dam; ! echo 2nd Shot:; ! use gun; ! use gun-dam```
 '''
-		elif IsDieRoll(parts[1]):
+		elif IsDieRoll(parts[1],Users[author]['vars']):
 			# Looks like a manual die Rolle, Get output for roll string
-			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=rollem(input))
+			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=rollem(input,Users[author]['vars']))
 		else:
 			# This doesn't match anything we know, so let's see if it is a Macro
 			# get User Macro DB from file
 			Message("Load file",1)
-			with open(UserFile,"r") as f:
-				Users = json.load(f)
+			Users=refreshDataFile(author)
 			Message("File Loaded",1)
-			#Message(Users[author].keys(),2)
-			if parts[1] in Users[author].keys():
+			#Message(Users[author]['macros'].keys(),2)
+			if parts[1] in Users[author]['macros'].keys():
 				# run the macro
-				retstr = parse(Users[author][parts[1]],author,MultiLine)
+				retstr = parse(Users[author]['macros'][parts[1]],author,MultiLine)
 			else:
 				# must be a nonsense string
 				retstr = '{Author}, your command was not understood.'.format(Author=author)
