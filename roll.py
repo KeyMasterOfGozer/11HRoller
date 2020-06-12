@@ -18,11 +18,15 @@ def Message(msg,lvl=0):
 	if lvl <= Verbosity:
 		print(msg)
 
+def replaceVars(input,varlist):
+	InStr=input.strip()
+	for key in varlist.keys():
+		InStr = InStr.replace("{"+key+"}",varlist[key])
+	return InStr
+
 def IsDieRoll(input,varlist):
 	# First, let's replace any variables in the string
-	RollStr=input.strip()
-	for key in varlist.keys():
-		RollStr = RollStr.replace("{"+key+"}",varlist[key])
+	RollStr=replaceVars(input.strip(),varlist)
 	# Tell us if this string is like a series of die rolls
 	if re.fullmatch("[+-]*(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",RollStr):
 		return True
@@ -177,7 +181,7 @@ def parse(input,author,MultiLine=0):
 			#give user message so he knows it's saved
 			retstr = "{Author} saved '{variable}' as '{definition}'".format(Author=author,variable=parts[2],definition=parts[3])
 		elif parts[1].upper() == "ECHO":
-			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=" ".join(parts[2:]))
+			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=replaceVars(" ".join(parts[2:]),Users[author]['vars']))
 		elif parts[1].upper() == "USE":
 			Users=refreshDataFile(author)
 			# run the macro
@@ -187,6 +191,9 @@ def parse(input,author,MultiLine=0):
 			# build list of stored commands
 			retstr = "\n{Author}'s Macros:".format(Author=author)
 			for key,value in Users[author]['macros'].items():
+				retstr += "\n{MacroName}:\t{MacroText}".format(MacroName=key,MacroText=value)
+			retstr += "\n{Author}'s Variables:".format(Author=author)
+			for key,value in Users[author]['vars'].items():
 				retstr += "\n{MacroName}:\t{MacroText}".format(MacroName=key,MacroText=value)
 		elif parts[1].upper() == "LOAD":
 			Users=refreshDataFile(author)
@@ -212,6 +219,11 @@ Use a semi-colon to execute multiple commands!
 **Use**:```! use init```or just ```! init```
 **List** your existing macros:```! list```
 **Load** up set of macros:```! load {'dex':'! 1d20+9 Dex Save','str':'! 1d20+5 Str Save'}```
+***Variables***
+**Set**:```! set Proficiency +4```
+**Use**:```! d20{Proficiency}+1 Sword to Hit```
+Variables are essentially string replacements.  If you need to add or subtract, make sure to put plus and minus signs in the variable, or in the macro, but not both.
+
 Macros can call macros.  Example:
 A Gun Attack:```/roll define gun 1d20+12 Gun to hit```
 Damage for the gun attack:```/roll define gun-dam 1d8+6 Piercing Damage```
