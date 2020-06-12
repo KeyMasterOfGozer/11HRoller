@@ -91,7 +91,12 @@ def rollem(input,varlist):
 
 		# I decided to add pipes in front of pluses and minuses to be able to split it and keep the sign with it
 		rollstr = "+"+parts[1].replace("+","|+").replace("-","|-").replace("{","|{").replace("}","}|")
-		rolls=rollstr.split("|")
+		#remove any accidentally created blank roll tokens
+		rollsd=rollstr.split("|")
+		rolls = []
+		for rstr in rollsd:
+			if rstr != "": rolls.append(rstr)
+
 		if rolls[-1]=='':
 			rolls=rolls[0:-1]
 		Message(rolls,2)
@@ -144,8 +149,13 @@ def parse(input,author,MultiLine=0):
 
 	#drop out if this is not a Roll command
 	if len(parts) == 0 or parts[0].upper() not in ['!','!R','!ROLL','/','/R','/ROLL','\\','\\R','\\ROLL']:
-		Message("Not a command",1)
-		return None
+		#Try to make a command if first character is !
+		if parts[0][0]=="!":
+			pt=["!",parts[0][1:],parts[1:]]
+			parts=pt
+		else:
+			Message("Not a command",1)
+			return None
 
 	# If this is a Multi-Command, run each command separately and stack them together, and return that
 	lines = input.split(";")
