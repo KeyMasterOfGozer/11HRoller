@@ -27,13 +27,15 @@ def replaceVars(input,varlist):
 def IsDieRoll(input,varlist):
 	# First, let's replace any variables in the string
 	RollStr=replaceVars(input.strip(),varlist)
+	# Check for roll parameters
+	RollStrParts=RollStr.split('|')
 	# Tell us if this string is like a series of die rolls
-	if re.fullmatch("[+-]*(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",RollStr):
+	if re.fullmatch("[+-]*(([0-9]*d[0-9]+[+-]?)|([0-9]+[+-]?))+",RollStrParts[0]):
 		return True
 	else:
 		return False
 
-def rollToken(Token,varlist):
+def rollToken(Token,varlist,params):
 	# Roll the numbers for a single die type
 	if Token[0]=='{':
 		TokenStr=Token[1:][0:-1]
@@ -44,6 +46,9 @@ def rollToken(Token,varlist):
 
 	# the operator to use (+,-)
 	oper = Token[0]
+	if oper not in ['+','-']:
+		oper = '+'
+		Token= '+'+Token
 
 	# if it has a "d", that means there are dice, otherwise it's just a number to add
 	if "d" in Token:
@@ -55,11 +60,18 @@ def rollToken(Token,varlist):
 			num = 1
 		else:
 			num=int(parts[0])
+		# Crit determination
+		if params['crit'] == -1:
+			crit = high
+		else:
+			crit = params['crit']
 	else:
 		# just a simple number to add/sutract
 		high=int(Token[1:])
 		low=high
 		num=1
+		# so we don't get a crit on a simple number
+		crit = high +1
 
 	info = TokenStr + " "
 	total = 0
@@ -70,12 +82,36 @@ def rollToken(Token,varlist):
 			roll = high
 		else:
 			roll = random.randint(low,high)
-			info += "({roll})".format(roll=roll)
-		# decide if we add or subtract
-		if oper == "+":
-			total+=roll
+			temproll = None
+			# make sure the answer we get is at least the min
+			if roll < int(params['min']):
+				rparams = params.copy()
+				rparams['min'] = -1
+				temproll, tempstr = rollToken(params['minval'],varlist,rparams)
+			# empahasize crit rolls
+			if roll >= crit:
+				critmark = "**"
+			else:
+				critmark = ""
+			if temproll is not None:
+				info += "(~~ {roll} ~~ {critmark}{temproll}{critmark})".format(roll=roll,temproll=temproll,critmark=critmark)
+				roll=temproll
+			else:
+				info += "({critmark}{roll}{critmark})".format(roll=roll,critmark=critmark)
+
+		# How do we need to process the total returned
+		if params['type'] == 'max':
+			if roll > total:
+				total = roll
+		elif params['type'] == 'min':
+			if roll < total or total == 0:
+				total = roll
 		else:
-			total-=roll
+			# decide if we add or subtract
+			if oper == "+":
+				total+=roll
+			else:
+				total-=roll
 
 	return total, info.strip()
 
@@ -90,12 +126,20 @@ def rollem(input,varlist):
 		Message(description,2)
 
 		# I decided to add pipes in front of pluses and minuses to be able to split it and keep the sign with it
-		rollstr = "+"+parts[1].replace("+","|+").replace("-","|-").replace("{","|{").replace("}","}|")
+		rollstr = "+"+parts[1].replace("|","~|~|").replace("+","~|~+").replace("-","~|~-").replace("{","~|~{").replace("}","}~|~").replace("=>","~|~=>")
 		#remove any accidentally created blank roll tokens
-		rollsd=rollstr.split("|")
+		rollsd=rollstr.split("~|~")
+		Message(rollsd,2)
 		rolls = []
+		rparams={'type':'sum','crit':-1, "critval":"+0", "min":1, "minval":"1", "print":"yes"}
+		catchvar = None
 		for rstr in rollsd:
-			if rstr != "": rolls.append(rstr)
+			if rstr != "":
+				if rstr[0:1] == "=>": catchvar = rst[2:]
+				elif rstr[0] == "|" :
+					psplit = rstr.split(':')
+					rparams[psplit[0][1:]]=psplit[1]
+				else: rolls.append(rstr)
 
 		if rolls[-1]=='':
 			rolls=rolls[0:-1]
@@ -106,9 +150,19 @@ def rollem(input,varlist):
 
 		# Run through the whole list and total everything up.
 		for roll in rolls:
-			subtotal, substr = rollToken(roll,varlist)
-			total += subtotal
+			subtotal, substr = rollToken(roll,varlist,rparams)
+			if rparams['type'] == 'max':
+				if subtotal > total:
+					total = subtotal
+			elif rparams['type'] == 'min':
+				if subtotal < total or total == 0:
+					total = subtotal
+			else:
+				total += subtotal
 			info +=  " " + substr
+
+		if catchvar is not None:
+			varlist[catchvar] = total
 
 		retstr = ""
 		# put in a description if one was given.
