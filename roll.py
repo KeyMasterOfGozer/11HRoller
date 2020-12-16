@@ -116,7 +116,7 @@ def rollToken(Token,varlist,params):
 	return total, info.strip()
 
 
-def rollem(input,varlist):
+def rollem(input,varlist,author):
 	# Stack up all of the dice that need to be rolled and get a total
 	Message("RollEm: '{text}' : {VarList}".format(text=input,VarList=json.dumps(varlist)),1)
 	try:
@@ -135,7 +135,7 @@ def rollem(input,varlist):
 		catchvar = None
 		for rstr in rollsd:
 			if rstr != "":
-				if rstr[0:1] == "=>": catchvar = rst[2:]
+				if rstr[0:2] == "=>": catchvar = rstr[2:]
 				elif rstr[0] == "|" :
 					psplit = rstr.split(':')
 					rparams[psplit[0][1:]]=psplit[1]
@@ -163,6 +163,12 @@ def rollem(input,varlist):
 
 		if catchvar is not None:
 			varlist[catchvar] = total
+			Users=refreshDataFile(author)
+			#save this variable for the user
+			Users[author]['vars'][catchvar] = str(total)
+			# save to DB file for next time
+			with open(UserFile,"w") as f:
+				f.write(json.dumps(Users,indent=2))
 
 		retstr = ""
 		# put in a description if one was given.
@@ -295,7 +301,7 @@ Combo macro that uses the other 2 multiple times:```/roll define atk echo **Norm
 '''
 		elif IsDieRoll(parts[1],Users[author]['vars']):
 			# Looks like a manual die Rolle, Get output for roll string
-			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=rollem(input,Users[author]['vars']))
+			retstr = "{Author}: {rollreturn}".format(Author=AuthorName,rollreturn=rollem(input,Users[author]['vars'],author))
 		else:
 			# This doesn't match anything we know, so let's see if it is a Macro
 			# get User Macro DB from file
